@@ -34,10 +34,11 @@ void dostuff (int sock)
 int main_server(char *argvs)
 {
     //int sockfd, newsockfd, portno, clilen, pid;
-    int sockfd, newsockfd, portno, pid;
+    int sockfd, newsockfd, portno, pid, n;
     socklen_t clilen;
-    struct sockaddr_in serv_addr, cli_addr;
-
+    struct sockaddr_in my_addr, talking_addr;
+    struct hostent *myname;
+    char buffer[256];//client
 //    if (argc < 2) {
 //        fprintf(stderr,"ERROR, no port provided\n");
 //        exit(1);
@@ -45,19 +46,26 @@ int main_server(char *argvs)
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
        error_server("ERROR opening socket");
-    bzero((char *) &serv_addr, sizeof(serv_addr));
+
+    myname = gethostbyname(argvs[0]);//client
+    if (myname == NULL) { //client
+        fprintf(stderr,"ERROR, no such host\n");
+        exit(0);
+    }
+    bzero((char *) &my_addr, sizeof(my_addr));
+
     portno = atoi(argvs);
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
-    if (bind(sockfd, (struct sockaddr *) &serv_addr,
-             sizeof(serv_addr)) < 0)
-             error_server("ERROR on binding");
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_addr.s_addr = INADDR_ANY; //in client we would copy s_addr to h_addr
+    my_addr.sin_port = htons(portno);
+    if (bind(sockfd, (struct sockaddr *) &my_addr,
+             sizeof(my_addr)) < 0)
+             error_server("ERROR on binding"); //in client we connect and not bind
     listen(sockfd,5);
-    clilen = sizeof(cli_addr);
+    clilen = sizeof(talking_addr);
     while (1) {
         newsockfd = accept(sockfd,
-              (struct sockaddr *) &cli_addr, &clilen);
+              (struct sockaddr *) &talking_addr, &clilen);
         if (newsockfd < 0)
             error_server("ERROR on accept");
         pid = fork();
